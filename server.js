@@ -8,9 +8,10 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
 // MongoDB Connection
-mongoose.connect('mongodb+srv://skill-4:Rahul6364@cluster0.d0pok.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
+mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
@@ -19,12 +20,15 @@ mongoose.connect('mongodb+srv://skill-4:Rahul6364@cluster0.d0pok.mongodb.net/?re
 })
 .catch(err => {
     console.error('MongoDB connection error:', err);
-    process.exit(1); // Exit if cannot connect to database
+    process.exit(1);
 });
 
 // Routes
 const productRoutes = require('./routes/productRoutes');
+const authRoutes = require('./routes/authRoutes');
+
 app.use('/api/products', productRoutes);
+app.use('/api/auth', authRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -36,8 +40,8 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = 4000; // Using a new port
-const server = app.listen(PORT, () => {
+const PORT = 3000; // Use port 3000
+app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 }).on('error', (err) => {
     if (err.code === 'EADDRINUSE') {

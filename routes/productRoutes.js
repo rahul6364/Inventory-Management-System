@@ -1,26 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/productController');
+const { auth, adminAuth } = require('../middleware/auth');
 
-// Create a new product
-router.post('/', productController.createProduct);
-
-// Get all products
+// Public routes
 router.get('/', productController.getAllProducts);
-
-// Get low stock products
-router.get('/low-stock', productController.getLowStockProducts);
-
-// Get a specific product
 router.get('/:id', productController.getProductById);
 
-// Update a product
-router.put('/:id', productController.updateProduct);
-
-// Delete a product
-router.delete('/:id', productController.deleteProduct);
-
-// Restock a product
-router.post('/:id/restock', productController.restockProduct);
+// Protected routes (require authentication)
+router.post('/', auth, adminAuth, productController.createProduct);
+router.put('/:id', auth, adminAuth, productController.updateProduct);
+router.delete('/:id', auth, adminAuth, productController.deleteProduct);
+router.post('/:id/restock', auth, adminAuth, productController.restockProduct);
+router.get('/low-stock', auth, adminAuth, productController.getLowStockProducts);
 
 module.exports = router; 

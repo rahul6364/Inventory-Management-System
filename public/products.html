@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Management - Inventory Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .container { margin-top: 30px; }
+        .form-group { margin-bottom: 15px; }
+        .product-list { margin-top: 30px; }
+        .navbar { margin-bottom: 30px; }
+        .action-buttons .btn { margin: 0 2px; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Inventory Management</a>
+            <div class="d-flex align-items-center">
+                <span class="text-light me-3" id="userInfo"></span>
+                <button onclick="logout()" class="btn btn-outline-light">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Add Product Form -->
+        <div class="card mb-4" id="productFormCard">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Add New Product</h5>
+            </div>
+            <div class="card-body">
+                <form id="productForm">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="productName">Product Name</label>
+                                <input type="text" class="form-control" id="productName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="productDescription">Description</label>
+                                <input type="text" class="form-control" id="productDescription" required>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="productPrice">Price</label>
+                                <input type="number" class="form-control" id="productPrice" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="productQuantity">Quantity</label>
+                                <input type="number" class="form-control" id="productQuantity" required>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <button type="submit" class="btn btn-primary w-100">Add Product</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Products List -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Products List</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsList">
+                            <!-- Products will be listed here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div class="modal fade" id="editProductModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProductForm">
+                        <input type="hidden" id="editProductId">
+                        <div class="form-group mb-3">
+                            <label for="editProductName">Product Name</label>
+                            <input type="text" class="form-control" id="editProductName" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="editProductDescription">Description</label>
+                            <input type="text" class="form-control" id="editProductDescription" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="editProductPrice">Price</label>
+                            <input type="number" class="form-control" id="editProductPrice" step="0.01" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="editProductQuantity">Quantity</label>
+                            <input type="number" class="form-control" id="editProductQuantity" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="updateProduct()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Check authentication
+        const authToken = localStorage.getItem('authToken');
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+        if (!authToken || !currentUser) {
+            window.location.href = 'login.html';
+        }
+
+        // Display user info and debug information
+        document.getElementById('userInfo').textContent = `Logged in as: ${currentUser.username} (${currentUser.role})`;
+        console.log('Current User:', currentUser);
+        console.log('Auth Token:', authToken);
+
+        // Update UI based on user role
+        function updateUIForUser() {
+            const productFormCard = document.getElementById('productFormCard');
+            console.log('User Role:', currentUser.role);
+            if (currentUser && currentUser.role === 'admin') {
+                productFormCard.style.display = 'block';
+                console.log('Showing admin controls');
+            } else {
+                productFormCard.style.display = 'none';
+                console.log('Hiding admin controls - user is not admin');
+            }
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            window.location.href = 'login.html';
+        }
+
+        // Add product form submission
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+
+            if (!currentUser || currentUser.role !== 'admin') {
+                alert('Only admins can add products');
+                return;
+            }
+
+            const product = {
+                name: document.getElementById('productName').value,
+                description: document.getElementById('productDescription').value,
+                price: parseFloat(document.getElementById('productPrice').value),
+                quantity: parseInt(document.getElementById('productQuantity').value)
+            };
+
+            try {
+                const response = await fetch('http://localhost:3000/api/products', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(product)
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Product added successfully!');
+                    loadProducts();
+                    e.target.reset();
+                } else {
+                    alert(data.message || 'Error adding product');
+                }
+            } catch (error) {
+                console.error('Error adding product:', error);
+                alert('Error adding product. Check console for details.');
+            }
+        });
+
+        // Load products
+        async function loadProducts() {
+            try {
+                const response = await fetch('http://localhost:3000/api/products');
+                const products = await response.json();
+                
+                const productsList = document.getElementById('productsList');
+                productsList.innerHTML = '';
+
+                if (!Array.isArray(products)) {
+                    console.error('Products is not an array:', products);
+                    return;
+                }
+
+                products.forEach(product => {
+                    if (!product.id) {
+                        console.error('Product missing ID:', product);
+                        return;
+                    }
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${product.name}</td>
+                        <td>${product.description}</td>
+                        <td>$${product.price.toFixed(2)}</td>
+                        <td>${product.quantity}</td>
+                        <td class="action-buttons">
+                            ${currentUser && currentUser.role === 'admin' ? `
+                                <button class="btn btn-sm btn-warning" onclick="openEditModal('${product.id}')">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteProduct('${product.id}')">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            ` : ''}
+                        </td>
+                    `;
+                    productsList.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading products:', error);
+                alert('Error loading products. Check console for details.');
+            }
+        }
+
+        // Delete product
+        async function deleteProduct(id) {
+            if (!id) {
+                alert('Invalid product ID');
+                return;
+            }
+
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+
+            if (!currentUser || currentUser.role !== 'admin') {
+                alert('Only admins can delete products');
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete this product?')) {
+                try {
+                    const response = await fetch(`http://localhost:3000/api/products/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+                    if (response.ok) {
+                        alert('Product deleted successfully!');
+                        loadProducts();
+                    } else {
+                        const data = await response.json();
+                        alert(data.message || 'Error deleting product');
+                    }
+                } catch (error) {
+                    console.error('Error deleting product:', error);
+                    alert('Error deleting product');
+                }
+            }
+        }
+
+        // Edit product modal
+        let editModal;
+        function openEditModal(id) {
+            if (!id) {
+                alert('Invalid product ID');
+                return;
+            }
+
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+
+            if (!currentUser || currentUser.role !== 'admin') {
+                alert('Only admins can edit products');
+                return;
+            }
+
+            // Fetch product details
+            fetch(`http://localhost:3000/api/products/${id}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch product details');
+                    }
+                    return response.json();
+                })
+                .then(product => {
+                    if (!product || !product.id) {
+                        throw new Error('Invalid product data received');
+                    }
+                    document.getElementById('editProductId').value = product.id;
+                    document.getElementById('editProductName').value = product.name;
+                    document.getElementById('editProductDescription').value = product.description;
+                    document.getElementById('editProductPrice').value = product.price;
+                    document.getElementById('editProductQuantity').value = product.quantity;
+                    
+                    editModal = new bootstrap.Modal(document.getElementById('editProductModal'));
+                    editModal.show();
+                })
+                .catch(error => {
+                    console.error('Error fetching product:', error);
+                    alert('Error fetching product details: ' + error.message);
+                });
+        }
+
+        // Update product
+        async function updateProduct() {
+            const id = document.getElementById('editProductId').value;
+            if (!id) {
+                alert('Invalid product ID');
+                return;
+            }
+
+            const product = {
+                name: document.getElementById('editProductName').value,
+                description: document.getElementById('editProductDescription').value,
+                price: parseFloat(document.getElementById('editProductPrice').value),
+                quantity: parseInt(document.getElementById('editProductQuantity').value)
+            };
+
+            try {
+                const response = await fetch(`http://localhost:3000/api/products/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(product)
+                });
+                
+                if (response.ok) {
+                    alert('Product updated successfully!');
+                    editModal.hide();
+                    loadProducts();
+                } else {
+                    const data = await response.json();
+                    alert(data.message || 'Error updating product');
+                }
+            } catch (error) {
+                console.error('Error updating product:', error);
+                alert('Error updating product');
+            }
+        }
+
+        // Initialize
+        updateUIForUser();
+        loadProducts();
+    </script>
+</body>
+</html> 
